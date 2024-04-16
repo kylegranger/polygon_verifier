@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 // use std::fs::write;
 use std::time::SystemTime;
-use std::{error::Error, fs, io, result::Result};
+use std::{env, error::Error, fs, io, result::Result};
 #[derive(Serialize, Deserialize)]
 struct PolygonVerifierResult {
     config_file: String,
@@ -14,13 +14,37 @@ struct PolygonVerifierResult {
     timestamp: u64,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    println!("polygon_verifier main()");
-    gevulot_shim::run(run_task)
+// fn main() -> Result<(), Box<dyn Error>> {
+//     println!("polygon_verifier main()");
+//     gevulot_shim::run(run_task)
+// }
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let (is_success, config_file) = polygon_verifier(&args).unwrap();
+
+    let message: String = match is_success {
+        true => "Polygon verifier result: success".to_string(),
+        false => "Polygon verifier result: fail".to_string(),
+    };
+
+    let timestamp = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+    let polygon_result = PolygonVerifierResult {
+        config_file,
+        is_success,
+        message,
+        timestamp,
+    };
+
+    let jresult = json!(polygon_result).to_string();
+    println!("polygon_verifier jresult: {:?}", &jresult);
 }
 
 // The main function that executes the prover program.
-fn run_task(task: Task) -> Result<TaskResult, Box<dyn Error>> {
+fn _run_task(task: Task) -> Result<TaskResult, Box<dyn Error>> {
     println!("polygon_verifier run_task()");
 
     // to synchronize argument parsing
@@ -93,7 +117,9 @@ fn polygon_verifier(args: &Vec<String>) -> Result<(bool, String), Box<dyn Error>
         return Err(String::from("no config file parameter").into());
     }
 
-    let _jproof = std::fs::read_to_string(config_path.clone().unwrap())?;
+    let jproof = std::fs::read_to_string(config_path.clone().unwrap())?;
+    println!("the file {:?} has length {} ", config_path, jproof.len());
+    println!("contents: {} ", jproof);
     // let proofs: Proofs = serde_json::from_str(&jproof)?;
     // let result = verify(proofs);
     let result = true;
